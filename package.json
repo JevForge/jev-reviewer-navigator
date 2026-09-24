@@ -1,6 +1,6 @@
 {
   "name": "jev-reviewer-navigator",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Suggest PR reviewers from CODEOWNERS, history, paths, labels, and teams. Jev decides; assignment stays explicit.",
   "private": true,
   "type": "module",
