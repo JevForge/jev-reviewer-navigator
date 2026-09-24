@@ -277,9 +277,27 @@ describe('outputs and executors', () => {
   });
 
   it('posts and updates comments; creates check runs', async () => {
-    expect(buildCommentMarkdown(baseDecision())).toContain('JEV Reviewer Navigator');
+    const withSignals = baseDecision();
+    const candidates = [
+      {
+        id: 'alice',
+        kind: 'user' as const,
+        signals: {
+          codeowners_hit: true,
+          path_history: false,
+          label_hint: false,
+          component_map: false,
+          team_mapped: false,
+          available: null,
+          open_review_requests: 2,
+        },
+      },
+    ];
+    expect(buildCommentMarkdown(withSignals, candidates)).toContain('| Reviewer | Evidence |');
+    expect(buildCommentMarkdown(withSignals, candidates)).toContain('CODEOWNERS');
+    expect(buildCommentMarkdown(withSignals, candidates)).toContain('load=2');
     expect(await maybePostComment(false, false, baseDecision(), null)).toBe('skipped');
-    expect(await maybePostComment(true, true, baseDecision(), null)).toBe('dry-run');
+    expect(await maybePostComment(true, true, baseDecision(), null, candidates)).toBe('dry-run');
 
     const createComment = vi.fn();
     const updateComment = vi.fn();

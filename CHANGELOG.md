@@ -4,7 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-## [0.2.0] — TBD
+## [0.2.1] — TBD
+
+### Added
+
+* PR comment evidence table (CODEOWNERS / history / label / component / load / availability) per suggested reviewer.
+
+## [0.2.0] — 2026-09-24
 
 ### Added
 

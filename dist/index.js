@@ -51500,7 +51500,24 @@ async function maybeAssignReviewers(params) {
 
 // src/executors/comment.ts
 var COMMENT_MARKER = "<!-- jev-reviewer-navigator -->";
-function buildCommentMarkdown(decision) {
+function signalCells(candidate) {
+  if (!candidate) return "\u2014";
+  const s = candidate.signals;
+  const parts = [];
+  if (s.codeowners_hit) parts.push("CODEOWNERS");
+  if (s.path_history) parts.push("history");
+  if (s.label_hint) parts.push("label");
+  if (s.component_map) parts.push("component");
+  if (s.team_mapped) parts.push("team-map");
+  if (s.available === true) parts.push("available");
+  if (s.available === false) parts.push("unavailable");
+  if (typeof s.open_review_requests === "number") {
+    parts.push(`load=${s.open_review_requests}`);
+  }
+  return parts.length ? parts.join(", ") : "allowlist";
+}
+function buildCommentMarkdown(decision, candidates = []) {
+  const byId = new Map(candidates.map((c) => [c.id, c]));
   const lines = [
     COMMENT_MARKER,
     "### JEV Reviewer Navigator",
@@ -51513,15 +51530,24 @@ function buildCommentMarkdown(decision) {
     `- **Provisional:** ${decision.provisional ? "yes" : "no"}`,
     `- **Jev provider:** \`${decision.provider}\``,
     "",
-    decision.summary,
+    decision.summary
+  ];
+  const rows = decision.ranked_reviewers.length ? decision.ranked_reviewers : decision.suggested_reviewers;
+  if (rows.length > 0) {
+    lines.push("", "| Reviewer | Evidence |", "| --- | --- |");
+    for (const id of rows) {
+      lines.push(`| \`${id}\` | ${signalCells(byId.get(id))} |`);
+    }
+  }
+  lines.push(
     "",
     "_Suggested reviewers are allowlisted only. Assignment requires explicit inputs._"
-  ];
+  );
   return lines.join("\n");
 }
-async function maybePostComment(enabled, dryRun, decision, client) {
+async function maybePostComment(enabled, dryRun, decision, client, candidates = []) {
   if (!enabled) return "skipped";
-  const body = buildCommentMarkdown(decision);
+  const body = buildCommentMarkdown(decision, candidates);
   if (dryRun || !client) return "dry-run";
   if (client.findExistingCommentId && client.updateComment) {
     const existing = await client.findExistingCommentId();
@@ -51601,7 +51627,8 @@ async function runNavigator(params) {
     params.commentOnGithub,
     params.dryRun,
     decision,
-    params.commentClient ?? null
+    params.commentClient ?? null,
+    params.candidates
   );
   const checkStatus = await maybeCreateCheckRun(
     params.createCheckRun,
