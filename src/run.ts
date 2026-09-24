@@ -94,6 +94,7 @@ export async function runNavigator(params: RunNavigatorParams): Promise<RunNavig
     params.dryRun,
     decision,
     params.commentClient ?? null,
+    params.candidates,
   );
 
   const checkStatus = await maybeCreateCheckRun(
