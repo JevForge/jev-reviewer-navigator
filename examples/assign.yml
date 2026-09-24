@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: JevForge/jev-reviewer-navigator@v0
+
+      - id: nav
+        uses: JevForge/jev-reviewer-navigator@v0
         with:
           decision_only: 'false'
           assign_reviewers: 'true'
@@ -25,5 +27,16 @@ jobs:
           comment_on_github: 'true'
           create_check_run: 'true'
           max_reviewers: '3'
+          low_confidence_policy: request-review
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+
+      - name: Stop when selection needs human review
+        if: steps.nav.outputs.needs_review == 'true'
+        run: |
+          echo "Reviewer selection requires human review"
+          exit 1
+
+      - name: Confirm assignment
+        if: steps.nav.outputs.assign_status == 'requested'
+        run: echo "Assigned ${{ steps.nav.outputs.suggested_reviewers }}"

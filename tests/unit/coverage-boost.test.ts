@@ -247,7 +247,9 @@ describe('outputs and executors', () => {
         dryRun: false,
       },
     );
-    expect(writer.setFailed).toHaveBeenCalled();
+    expect(writer.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining('[JEV Reviewer Navigator]'),
+    );
 
     applyPolicyToAction(
       writer,

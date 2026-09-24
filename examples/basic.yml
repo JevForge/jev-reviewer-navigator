@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: JevForge/jev-reviewer-navigator@v0
+
+      - id: nav
+        uses: JevForge/jev-reviewer-navigator@v0
         with:
           decision_only: 'true'
           dry_run: 'true'
@@ -24,3 +26,10 @@ jobs:
           low_confidence_policy: warn
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+
+      - name: Print suggestion
+        run: |
+          echo "decision=${{ steps.nav.outputs.decision }}"
+          echo "confidence=${{ steps.nav.outputs.confidence }}"
+          echo "suggested=${{ steps.nav.outputs.suggested_reviewers }}"
+          echo "provisional=${{ steps.nav.outputs.provisional }}"

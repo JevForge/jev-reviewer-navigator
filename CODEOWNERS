@@ -1,0 +1,4 @@
+# Protect Action metadata and Jev config examples in this repository.
+/.github/workflows/ @JevForge/maintainers
+/action.yml @JevForge/maintainers
+/dist/ @JevForge/maintainers

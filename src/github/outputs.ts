@@ -56,21 +56,22 @@ export function applyPolicyToAction(
     needsReview: outcome.status === 'request-review',
   });
 
+  const prefix = '[JEV Reviewer Navigator]';
   if (outcome.status === 'fail') {
     if (extras.dryRun) {
-      writer.warning(`[dry_run] would fail: ${outcome.message}`);
+      writer.warning(`${prefix} [dry_run] would fail: ${outcome.message}`);
       return;
     }
-    writer.setFailed(outcome.message);
+    writer.setFailed(`${prefix} ${outcome.message}`);
     return;
   }
   if (outcome.status === 'warn') {
-    writer.warning(outcome.message);
+    writer.warning(`${prefix} ${outcome.message}`);
   }
   if (outcome.status === 'request-review') {
-    writer.warning('Reviewer selection requires human review');
+    writer.warning(`${prefix} Reviewer selection requires human review`);
   }
   if (outcome.status === 'no-op') {
-    writer.info(outcome.message);
+    writer.info(`${prefix} ${outcome.message}`);
   }
 }
