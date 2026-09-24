@@ -4,6 +4,7 @@ export interface LoadMetrics {
 
 export interface LoadClient {
   countOpenReviewRequests(loginOrTeam: string): Promise<number>;
+  listTeamMembers?(teamSlug: string): Promise<string[]>;
 }
 
 /**
@@ -20,9 +21,18 @@ export async function collectReviewLoad(
 
   const metrics: LoadMetrics = {};
   for (const id of candidateIds.slice(0, 32)) {
-    if (id.startsWith('team:')) continue;
     try {
-      metrics[id] = await client.countOpenReviewRequests(id);
+      if (id.startsWith('team:')) {
+        if (!client.listTeamMembers) continue;
+        const members = await client.listTeamMembers(id.slice('team:'.length));
+        let total = 0;
+        for (const member of members.slice(0, 100)) {
+          total += await client.countOpenReviewRequests(member);
+        }
+        metrics[id] = total;
+      } else {
+        metrics[id] = await client.countOpenReviewRequests(id);
+      }
     } catch {
       // Soft signal
     }

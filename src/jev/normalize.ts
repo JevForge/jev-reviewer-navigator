@@ -53,6 +53,7 @@ function derivedReasons(
     if (candidate.signals.path_history) codes.add('PATH_HISTORY');
     if (candidate.signals.label_hint) codes.add('LABEL_HINT');
     if (candidate.signals.component_map) codes.add('COMPONENT_MAP');
+    if (candidate.signals.monorepo_project) codes.add('MONOREPO_PROJECT');
     if (candidate.signals.team_mapped) codes.add('TEAM_MAPPED');
     if (candidate.signals.available !== null) codes.add('AVAILABILITY_SIGNAL');
     if (candidate.signals.open_review_requests !== null) codes.add('REVIEW_LOAD_SIGNAL');
@@ -160,6 +161,7 @@ export function deterministicFallback(
       let score = 0;
       if (c.signals.codeowners_hit) score += 4;
       if (c.signals.component_map) score += 3;
+      if (c.signals.monorepo_project) score += 3;
       if (c.signals.path_history) score += 2;
       if (c.signals.label_hint) score += 2;
       if (c.signals.available === false) score -= 2;

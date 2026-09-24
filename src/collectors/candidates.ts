@@ -15,6 +15,7 @@ export interface BuildCandidatesInput {
   excludeAuthor: boolean;
   availability: AvailabilitySignal[];
   loadMetrics: LoadMetrics;
+  monorepoHints?: Map<string, string[]>;
 }
 
 function kindOf(id: string): 'user' | 'team' {
@@ -78,6 +79,8 @@ export function buildCandidates(input: BuildCandidatesInput): {
           label_hint: false,
           component_map: false,
           team_mapped: false,
+          monorepo_project: false,
+          monorepo_projects: [],
           available: null,
           open_review_requests: null,
         },
@@ -110,6 +113,14 @@ export function buildCandidates(input: BuildCandidatesInput): {
     for (const reviewer of reviewers) {
       const c = ensure(reviewer);
       if (c) c.signals.component_map = true;
+    }
+  }
+
+  for (const [id, projects] of input.monorepoHints ?? []) {
+    const c = ensure(id);
+    if (c) {
+      c.signals.monorepo_project = true;
+      c.signals.monorepo_projects = [...new Set(projects)].slice(0, 16);
     }
   }
 

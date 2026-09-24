@@ -3,6 +3,7 @@ import type { NavigatorDecision, ReviewerCandidate } from '../schemas/navigator.
 
 export interface ReviewerEvaluationState {
   changed_paths: string[];
+  affected_projects?: string[];
   paths_truncated: boolean;
   labels: string[];
   author: string | null;

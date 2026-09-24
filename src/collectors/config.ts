@@ -6,9 +6,11 @@ import {
   NavigatorConfigSchema,
   type JeConfig,
   type NavigatorConfig,
+  ReviewerIdSchema,
 } from '../schemas/navigator.js';
 import type { JevProviderId, LowConfidencePolicy } from '../schemas/enums.js';
 import { normalizeReviewerId, parseList } from '../utils/sanitize.js';
+import { ZodError } from 'zod';
 
 export function loadYamlFile(workspace: string, relativePath: string): unknown {
   const full = join(workspace, relativePath);
@@ -18,18 +20,54 @@ export function loadYamlFile(workspace: string, relativePath: string): unknown {
 }
 
 export function loadJeConfig(workspace: string, path = '.jev/config.yml'): JeConfig {
-  const raw = loadYamlFile(workspace, path);
-  if (raw === undefined) return JeConfigSchema.parse({});
-  return JeConfigSchema.parse(raw ?? {});
+  let raw: unknown;
+  try {
+    raw = loadYamlFile(workspace, path);
+    if (raw === undefined) return JeConfigSchema.parse({});
+    return JeConfigSchema.parse(raw ?? {});
+  } catch (error) {
+    throw formatConfigError(path, raw, error);
+  }
 }
 
 export function loadNavigatorConfig(
   workspace: string,
   path = '.jev/reviewer-navigator.yml',
 ): NavigatorConfig {
-  const raw = loadYamlFile(workspace, path);
-  if (raw === undefined) return NavigatorConfigSchema.parse({});
-  return NavigatorConfigSchema.parse(raw ?? {});
+  let raw: unknown;
+  try {
+    raw = loadYamlFile(workspace, path);
+    if (raw === undefined) return NavigatorConfigSchema.parse({});
+    return NavigatorConfigSchema.parse(raw ?? {});
+  } catch (error) {
+    throw formatConfigError(path, raw, error);
+  }
+}
+
+function valueAtPath(raw: unknown, path: (string | number)[]): unknown {
+  let current = raw as Record<string, unknown> | undefined;
+  for (const part of path) {
+    current = current?.[part as keyof typeof current] as Record<string, unknown> | undefined;
+  }
+  return current;
+}
+
+function formatConfigError(path: string, raw: unknown, error: unknown): Error {
+  if (!(error instanceof ZodError)) {
+    const message = error instanceof Error ? error.message : String(error);
+    return new Error(`Invalid reviewer config '${path}': ${message}`);
+  }
+  const details = error.issues.map(issue => {
+    const location = issue.path.length ? issue.path.join('.') : '(root)';
+    const value = valueAtPath(raw, issue.path);
+    const hint = issue.path.some(
+      part => String(part) === 'allowlist' || String(part) === 'any_of',
+    )
+      ? ` Invalid reviewer id '${String(value)}'; use a GitHub login or team:slug.`
+      : '';
+    return `${location}: ${issue.message}.${hint}`;
+  });
+  return new Error(`Invalid reviewer config '${path}': ${details.join(' ')}`);
 }
 
 export function coalesceProvider(
@@ -64,9 +102,17 @@ export function mergeAllowlist(
   configAllowlist: string[],
   inputAllowlist: string | undefined,
 ): string[] {
-  const fromInput = parseList(inputAllowlist)
-    .map(normalizeReviewerId)
-    .filter((id): id is string => Boolean(id));
+  const fromInput = parseList(inputAllowlist).map(raw => {
+    const normalized = normalizeReviewerId(raw);
+    if (raw.includes('/')) {
+      const slug = raw.split('/').at(-1) || raw;
+      throw new Error(`Invalid allowlist entry '${raw}'; use 'team:${slug}'.`);
+    }
+    if (!normalized || !ReviewerIdSchema.safeParse(normalized).success) {
+      throw new Error(`Invalid allowlist entry '${raw}'; use a GitHub login or team:slug.`);
+    }
+    return normalized;
+  });
   const merged = [...configAllowlist, ...fromInput];
   return [...new Set(merged)];
 }

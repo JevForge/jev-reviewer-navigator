@@ -10,6 +10,11 @@ export interface AvailabilityClient {
   isOrgMember?(login: string): Promise<boolean | null>;
 }
 
+export interface AvailabilitySource {
+  readonly name: string;
+  getAvailability(login: string): Promise<boolean | null>;
+}
+
 /**
  * Soft availability signals. Never invents OOO/busy status.
  * Users: optional org membership check. Teams: always null (unknown).
@@ -17,7 +22,7 @@ export interface AvailabilityClient {
 export async function collectAvailability(
   candidateIds: string[],
   enabled: boolean,
-  client: AvailabilityClient | null,
+  client: AvailabilityClient | AvailabilitySource | null,
 ): Promise<{ status: AvailabilityStatus; signals: AvailabilitySignal[] }> {
   if (!enabled) return { status: 'skipped', signals: [] };
   if (!client) return { status: 'unavailable', signals: [] };
@@ -28,12 +33,15 @@ export async function collectAvailability(
       signals.push({ id, available: null, reason: 'team' });
       continue;
     }
-    if (!client.isOrgMember) {
+    const getAvailability = 'getAvailability' in client
+      ? client.getAvailability.bind(client)
+      : client.isOrgMember?.bind(client);
+    if (!getAvailability) {
       signals.push({ id, available: null, reason: 'unknown' });
       continue;
     }
     try {
-      const member = await client.isOrgMember(id);
+      const member = await getAvailability(id);
       signals.push({
         id,
         available: member,
