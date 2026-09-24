@@ -27,6 +27,9 @@ Wrong or missing reviewers slow every PR. Letting an unconstrained model invent 
 * Optional PR comment, Check Run, and `requestReviewers` (gated behind explicit inputs)
 * Soft signals for org membership and open review-request load (never invents OOO/busy)
 * Deterministic CODEOWNERS/history fallback when Jev is unavailable (`provisional=true`)
+* Deterministic required-reviewer floors by path (`required_reviewers`)
+* Monorepo project evidence via `affected_projects` or Pathfinder-compatible `monorepo_plan`
+* Explicit `primary_reviewer` output and a checkout-plus-Action composite wrapper
 * `dry_run` (default `true`) — set `false` only when you want mutate/fail behavior
 
 ## How it works
@@ -90,7 +93,7 @@ The deterministic executor still owns the effect: allowlist intersection, author
 
 ## Quick Start
 
-1. Add a config file (see [`examples/.jev/reviewer-navigator.yml`](examples/.jev/reviewer-navigator.yml)).
+1. Add a config file (see [`examples/.jev/reviewer-navigator.yml`](examples/.jev/reviewer-navigator.yml)). Protect it with CODEOWNERS; see [`examples/CODEOWNERS`](examples/CODEOWNERS).
 2. Add repository secret `AI_GATEWAY_API_KEY` (default provider).
 3. Add a workflow:
 
@@ -175,6 +178,8 @@ Assign only when you explicitly opt in (`decision_only=false` + `assign_reviewer
 | `exclude_author` | no | `true` | Drop the PR author |
 | `max_reviewers` | no | `3` | Cap suggestions (1–16) |
 | `labels` | no | _(from PR)_ | Label evidence override |
+| `affected_projects` | no | | Newline-separated list or JSON array of affected monorepo projects |
+| `monorepo_plan` | no | | JSON object from Monorepo Navigator; reads `affected_projects` |
 | `jev_provider` | no | `vercel-ai-gateway` | `vercel-ai-gateway` \| `typesafe-native` \| `custom-compatible` |
 | `jev_model` | no | _(provider default)_ | Required for native/custom |
 | `jev_endpoint` | no | | HTTPS endpoint for native/custom |
@@ -192,6 +197,7 @@ Assign only when you explicitly opt in (`decision_only=false` + `assign_reviewer
 | `comment_on_github` | no | `false` | Idempotent PR comment |
 | `create_check_run` | no | `false` | Completed Check Run |
 | `telemetry` | no | `false` | Structured info log (no secrets) |
+| `cache_decisions` | no | `false` | Restore/save typed decisions via Actions cache |
 | `trust_repo_jev_endpoint` | no | `false` | Trust repo config endpoint with credentials |
 | `token` | no | `${{ github.token }}` | GitHub API token |
 | `dry_run` | no | `true` | No mutate / no fail-on-policy |
@@ -203,6 +209,7 @@ Assign only when you explicitly opt in (`decision_only=false` + `assign_reviewer
 | `decision` | `RECOMMEND_REVIEWERS` \| `ABSTAIN` \| `REQUEST_REVIEW` |
 | `suggested_reviewers` | JSON array of allowlisted logins / `team:slug` |
 | `ranked_reviewers` | Preference-ordered JSON array |
+| `primary_reviewer` | First ranked reviewer, or empty |
 | `confidence` | `0`–`1` |
 | `reason_codes` | JSON array of stable enums |
 | `summary` | Plain text (never execute) |
@@ -213,6 +220,7 @@ Assign only when you explicitly opt in (`decision_only=false` + `assign_reviewer
 | `assign_status` | `requested` \| `dry-run` \| `skipped` \| `disabled` |
 | `availability_status` | `collected` \| `skipped` \| `unavailable` |
 | `load_metrics` | JSON map of open review-request counts |
+| `cache_hit` | `true` when the typed decision was restored from Actions cache |
 
 ### Using outputs in conditions
 
@@ -284,11 +292,50 @@ Jev answers one boolean per allowlisted candidate plus `abstain` / `request_revi
 4. Applies `min_confidence` + `low_confidence_policy`
 5. Optionally assigns **only** when `decision_only=false` and `assign_reviewers=true`
 
+### Required reviewer policy
+
+Add a deterministic floor to `.jev/reviewer-navigator.yml`:
+
+```yaml
+required_reviewers:
+  - paths: [/src/auth/]
+    any_of: [team:security, bob]
+    min: 1
+```
+
+When a matching path is changed, at least `min` entries from `any_of` are kept in
+the allowlisted recommendation, subject to `max_reviewers`. Invalid entries fail
+early with a path-aware message; use `team:slug`, not `org/team`.
+
+### Monorepos
+
+Pass project evidence from a previous Navigator step:
+
+```yaml
+with:
+  affected_projects: '["apps/web", "packages/auth"]'
+```
+
+Map projects to reviewers with `project_reviewer_map`. The mapping only adds
+allowlisted candidate evidence; it never bypasses the allowlist.
+
+### Composite wrapper
+
+The optional wrapper checks out the consumer repository and re-exports the Action
+outputs:
+
+```yaml
+- id: nav
+  uses: JevForge/jev-reviewer-navigator/composite@v0
+  with:
+    config_path: .jev/reviewer-navigator.yml
+```
+
 ## Data sent to Jev
 
 * Sample of changed paths (not file contents)
 * PR labels
-* Candidate ids with boolean evidence flags (CODEOWNERS, history, label, component, availability, load)
+* Candidate ids with boolean evidence flags (CODEOWNERS, history, label, component, monorepo, availability, load)
 * `max_reviewers` and an untrusted-data note
 
 Never sent: tokens, secrets, patch hunks, or raw file contents.
@@ -322,7 +369,7 @@ uses: JevForge/jev-reviewer-navigator@v0
 Pin a full release when you need reproducibility:
 
 ```yaml
-uses: JevForge/jev-reviewer-navigator@v0.1.0
+uses: JevForge/jev-reviewer-navigator@v0.4.4
 ```
 
 ## Development

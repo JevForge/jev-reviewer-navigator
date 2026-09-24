@@ -1,24 +1,26 @@
-# JEV Reviewer Navigator configuration
 allowlist:
   - alice
   - bob
-  - team:platform
   - team:security
 
-exclude_author: true
-max_reviewers: 3
-
-# Path fragment → reviewers (soft component map)
 component_map:
-  src/auth:
-    - bob
+  src/auth/:
     - team:security
-  src/billing:
-    - team:platform
 
-# PR label → reviewers
-label_team_map:
-  area/platform:
-    - team:platform
-  area/security:
+project_reviewer_map:
+  apps/web:
+    - alice
+  packages/auth:
     - team:security
+
+label_team_map:
+  security:
+    - team:security
+
+required_reviewers:
+  - paths:
+      - /src/auth/
+    any_of:
+      - team:security
+      - bob
+    min: 1

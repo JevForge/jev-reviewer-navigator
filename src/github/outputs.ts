@@ -26,6 +26,7 @@ export function writeDecisionOutputs(
   writer.setOutput('decision', decision.decision);
   writer.setOutput('suggested_reviewers', JSON.stringify(decision.suggested_reviewers));
   writer.setOutput('ranked_reviewers', JSON.stringify(decision.ranked_reviewers));
+  writer.setOutput('primary_reviewer', decision.ranked_reviewers[0] ?? decision.suggested_reviewers[0] ?? '');
   writer.setOutput('confidence', String(decision.confidence));
   writer.setOutput('reason_codes', JSON.stringify(decision.reason_codes));
   writer.setOutput('summary', decision.summary);

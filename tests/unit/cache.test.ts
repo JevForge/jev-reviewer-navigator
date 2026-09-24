@@ -38,4 +38,24 @@ describe('decision cache keys', () => {
     });
     expect(a).not.toBe(b);
   });
+
+  it('changes when affected monorepo projects differ', () => {
+    const a = buildCacheKey({
+      sha: 'abc',
+      configFingerprint: 'x',
+      paths: ['a.ts'],
+      provider: 'vercel-ai-gateway',
+      maxReviewers: 3,
+      affectedProjects: ['apps/web'],
+    });
+    const b = buildCacheKey({
+      sha: 'abc',
+      configFingerprint: 'x',
+      paths: ['a.ts'],
+      provider: 'vercel-ai-gateway',
+      maxReviewers: 3,
+      affectedProjects: ['packages/auth'],
+    });
+    expect(a).not.toBe(b);
+  });
 });

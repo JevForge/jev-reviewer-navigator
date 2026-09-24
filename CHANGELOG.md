@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.4] — 2026-09-24
+
+### Added
+
+* Required reviewer floors, monorepo project evidence, aggregated team load, and an extensible availability source.
+* `primary_reviewer` output, composite wrapper, friendly config errors, offline E2E fixture, Marketplace flow diagram, and consumer CODEOWNERS example.
+
+Release/tag publication remains a separate operation.
+
 ## [Unreleased]
 
 ## [0.2.2] — TBD

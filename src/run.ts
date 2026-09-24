@@ -15,6 +15,8 @@ import type { AvailabilityStatus } from './collectors/availability.js';
 import type { LoadMetrics } from './collectors/load.js';
 import type { PolicyOutcome } from './decision/policy.js';
 import { join } from 'node:path';
+import { applyRequiredReviewers, type RequiredReviewerRule } from './decision/required.js';
+import { NavigatorDecisionSchema } from './schemas/navigator.js';
 
 export interface RunNavigatorParams {
   candidates: ReviewerCandidate[];
@@ -25,6 +27,8 @@ export interface RunNavigatorParams {
   maxReviewers: number;
   minConfidence: number;
   lowConfidencePolicy: LowConfidencePolicy;
+  requiredReviewerRules?: RequiredReviewerRule[];
+  affectedProjects?: string[];
   jevProvider: JevProviderId;
   jevEndpoint?: string;
   jevModel?: string;
@@ -69,6 +73,7 @@ export async function runNavigator(params: RunNavigatorParams): Promise<RunNavig
     paths: params.changedPaths,
     provider: params.jevProvider,
     maxReviewers: params.maxReviewers,
+    affectedProjects: params.affectedProjects ?? [],
   });
 
   let outcome: PolicyOutcome | null = await tryRestoreDecisionCache({
@@ -94,6 +99,7 @@ export async function runNavigator(params: RunNavigatorParams): Promise<RunNavig
       changedPaths: params.changedPaths,
       pathsTruncated: params.pathsTruncated,
       labels: params.labels,
+      affectedProjects: params.affectedProjects,
       author: params.author,
       maxReviewers: params.maxReviewers,
       minConfidence: params.minConfidence,
@@ -108,6 +114,14 @@ export async function runNavigator(params: RunNavigatorParams): Promise<RunNavig
       outcome,
     });
   }
+
+  outcome = applyRequiredReviewerFloor(
+    outcome,
+    params.candidates,
+    params.changedPaths,
+    params.requiredReviewerRules ?? [],
+    params.maxReviewers,
+  );
 
   const decision = outcome.decision;
   const summary = [
@@ -153,4 +167,38 @@ export async function runNavigator(params: RunNavigatorParams): Promise<RunNavig
     loadMetrics: params.loadMetrics,
     cacheHit,
   };
+}
+
+function applyRequiredReviewerFloor(
+  outcome: PolicyOutcome,
+  candidates: ReviewerCandidate[],
+  changedPaths: string[],
+  rules: RequiredReviewerRule[],
+  maxReviewers: number,
+): PolicyOutcome {
+  if (outcome.decision.decision !== 'RECOMMEND_REVIEWERS' || rules.length === 0) {
+    return outcome;
+  }
+  const applied = applyRequiredReviewers(
+    outcome.decision.suggested_reviewers,
+    changedPaths,
+    rules,
+    maxReviewers,
+    new Set(candidates.map(candidate => candidate.id)),
+  );
+  if (
+    applied.reviewers.length === outcome.decision.suggested_reviewers.length &&
+    applied.applied.length === 0
+  ) {
+    return outcome;
+  }
+  const decision = NavigatorDecisionSchema.parse({
+    ...outcome.decision,
+    suggested_reviewers: applied.reviewers,
+    ranked_reviewers: applied.reviewers,
+    reason_codes: [...new Set([...outcome.decision.reason_codes, 'REQUIRED_REVIEWER'])].slice(0, 16),
+    summary: `${outcome.decision.summary} Required reviewer floor applied: ${applied.applied.join(', ') || 'already satisfied'}.`,
+    provisional: true,
+  });
+  return { ...outcome, decision };
 }

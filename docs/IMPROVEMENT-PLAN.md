@@ -1,22 +1,24 @@
 # Improvement plan — JEV Reviewer Navigator
 
-Ordered delivery. Each item is a **separate PR + commit + SemVer release** via `JevForge/jev-release-forge`.
+Ordered delivery. The implementation is complete in this working tree. Each item
+remains independently releasable through `JevForge/jev-release-forge`.
 
-| # | Item | SemVer | Breaking? |
-|---|------|--------|-----------|
-| 1 | Idempotent assignment | `0.2.0` | No |
-| 2 | Evidence table in PR comment | `0.2.1` | No |
-| 3 | Decision cache (`cache_decisions`) | `0.2.2` | No |
-| 4 | Required reviewers by path | `0.3.0` | No (additive config) |
-| 5 | Monorepo Navigator plan input | `0.3.1` | No |
-| 6 | Team review-load aggregation | `0.3.2` | No |
-| 7 | Extensible availability interface | `0.3.3` | No |
-| 8 | `primary_reviewer` output | `0.3.4` | No (additive output) |
-| 9 | Composite Action wrapper | `0.4.0` | No |
-| 10 | Friendly config validation errors | `0.4.1` | No |
-| 11 | E2E fixture workflow | `0.4.2` | No |
-| 12 | Marketplace demo diagram (SVG) | `0.4.3` | No |
-| 13 | Consumer CODEOWNERS / Quick Start | `0.4.4` | No |
+| # | Item | SemVer | Status |
+|---|------|--------|--------|
+| 1 | Idempotent assignment | `0.2.0` | done |
+| 2 | Evidence table in PR comment | `0.2.1` | done |
+| 3 | Decision cache (`cache_decisions`) | `0.2.2` | done |
+| 4 | Required reviewers by path | `0.3.0` | done |
+| 5 | Monorepo Navigator plan input | `0.3.1` | done |
+| 6 | Team review-load aggregation | `0.3.2` | done |
+| 7 | Extensible availability interface | `0.3.3` | done |
+| 8 | `primary_reviewer` output | `0.3.4` | done |
+| 9 | Composite Action wrapper | `0.4.0` | done |
+| 10 | Friendly config validation errors | `0.4.1` | done |
+| 11 | E2E fixture workflow | `0.4.2` | done |
+| 12 | Marketplace demo diagram (SVG) | `0.4.3` | done |
+| 13 | Release packaging / Marketplace metadata | `0.4.4` | ready for release operation |
+| 14 | Consumer CODEOWNERS / Quick Start | `0.4.4` | done |
 
 ## Design notes
 

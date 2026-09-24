@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">JEV Reviewer Navigator flow</title>
+  <desc id="desc">Pull request diff flows through evidence and allowlist checks to a typed Jev suggestion and optional effects.</desc>
+  <rect width="1200" height="260" rx="24" fill="#0b1220"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <g fill="#17243a" stroke="#5aa7ff" stroke-width="2">
+      <rect x="35" y="82" width="180" height="96" rx="16"/><rect x="255" y="82" width="180" height="96" rx="16"/><rect x="475" y="82" width="180" height="96" rx="16"/><rect x="695" y="82" width="180" height="96" rx="16"/><rect x="915" y="82" width="250" height="96" rx="16"/>
+    </g>
+    <g fill="#fff" font-size="20" font-weight="700"><text x="125" y="120">PR diff</text><text x="345" y="120">Evidence</text><text x="565" y="120">Allowlist</text><text x="785" y="120">Jev</text><text x="1040" y="120">Outputs / effects</text></g>
+    <g fill="#b7c7df" font-size="14"><text x="125" y="148">paths + labels</text><text x="345" y="148">CODEOWNERS · history</text><text x="565" y="148">users + team:slug</text><text x="785" y="148">typed decision</text><text x="1040" y="148">comment · check · assign</text></g>
+    <g stroke="#9bd0ff" stroke-width="3" fill="none"><path d="M215 130h40m180 0h40m180 0h40m180 0h40"/><path d="m245 130-12-8m12 8-12 8m232 0-12-8m12 8-12 8m232 0-12-8m12 8-12 8m232 0-12-8m12 8-12 8"/></g>
+  </g>
+</svg>

@@ -7,7 +7,7 @@ branding:
 
 inputs:
   config_path:
-    description: Path to the reviewer config (allowlist, component map, label→team map). Default `.jev/reviewer-navigator.yml`.
+    description: Path to the reviewer config (allowlist, component/project maps, label→team map, required reviewers). Default `.jev/reviewer-navigator.yml`.
     required: false
     default: .jev/reviewer-navigator.yml
   changed_paths:
@@ -32,6 +32,14 @@ inputs:
     default: '3'
   labels:
     description: PR labels used as evidence. Empty reads labels from the `pull_request` event.
+    required: false
+    default: ''
+  affected_projects:
+    description: Newline-separated list or JSON array of monorepo projects affected by the change.
+    required: false
+    default: ''
+  monorepo_plan:
+    description: JSON plan from JEV Monorepo Navigator. Reads its `affected_projects` field.
     required: false
     default: ''
   jev_provider:
@@ -67,7 +75,7 @@ inputs:
     required: false
     default: 'true'
   assign_reviewers:
-    description: When true and `decision_only` is false, request suggested reviewers on the PR. Requires `pull-requests: write`.
+    description: 'When true and `decision_only` is false, request suggested reviewers on the PR. Requires `pull-requests: write`.'
     required: false
     default: 'false'
   auto_assign:
@@ -91,11 +99,11 @@ inputs:
     required: false
     default: '20'
   comment_on_github:
-    description: Upsert an idempotent PR comment. Requires `pull-requests: write`.
+    description: 'Upsert an idempotent PR comment. Requires `pull-requests: write`.'
     required: false
     default: 'false'
   create_check_run:
-    description: Create a completed Check Run named JEV Reviewer Navigator. Requires `checks: write`.
+    description: 'Create a completed Check Run named JEV Reviewer Navigator. Requires `checks: write`.'
     required: false
     default: 'false'
   telemetry:
@@ -126,6 +134,8 @@ outputs:
     description: JSON array of allowlisted logins and `team:slug` values.
   ranked_reviewers:
     description: JSON array of suggested reviewers in preference order.
+  primary_reviewer:
+    description: First ranked reviewer, or empty when no reviewer is recommended.
   confidence:
     description: Jev confidence from 0 to 1. Policy overrides do not invent a higher value.
   reason_codes:

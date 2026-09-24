@@ -8,3 +8,34 @@ lib/
 .DS_Store
 *.tsbuildinfo
 .jev/.decision-cache/
+
+# Local agent/planning artifacts
+.grill/
+.start-feature/
+.test-feature/
+.pre-pr/
+.finish-task/
+.security-check/
+
+# Generated test reports and results
+test-results/
+test-results.*
+playwright-report/
+html-report/
+*.junit.xml
+*.test-results.xml
+*.coverage
+.nyc_output/
+
+# Generated security and static-analysis reports
+security-results/
+security-reports/
+security-report.*
+*-security-report.*
+trivy-results/
+snyk-results/
+osv-results/
+semgrep-results/
+sarif/
+*.sarif
+npm-audit*.json

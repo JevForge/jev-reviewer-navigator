@@ -19,6 +19,7 @@ export interface ExecuteInput {
   changedPaths: string[];
   pathsTruncated: boolean;
   labels: string[];
+  affectedProjects?: string[];
   author: string | null;
   maxReviewers: number;
   minConfidence: number;
@@ -38,6 +39,7 @@ export async function executeNavigator(input: ExecuteInput): Promise<ExecutionRe
     changedPaths: input.changedPaths,
     pathsTruncated: input.pathsTruncated,
     labels: input.labels,
+    affectedProjects: input.affectedProjects,
     author: input.author,
     maxReviewers: input.maxReviewers,
     candidates: input.candidates,

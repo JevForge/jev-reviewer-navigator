@@ -10,6 +10,8 @@ const INPUT_NAMES = [
   'exclude_author',
   'max_reviewers',
   'labels',
+  'affected_projects',
+  'monorepo_plan',
   'jev_provider',
   'jev_model',
   'jev_endpoint',

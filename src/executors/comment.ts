@@ -10,6 +10,7 @@ function signalCells(candidate: ReviewerCandidate | undefined): string {
   if (s.path_history) parts.push('history');
   if (s.label_hint) parts.push('label');
   if (s.component_map) parts.push('component');
+  if (s.monorepo_project) parts.push(`monorepo=${(s.monorepo_projects ?? []).join(',')}`);
   if (s.team_mapped) parts.push('team-map');
   if (s.available === true) parts.push('available');
   if (s.available === false) parts.push('unavailable');

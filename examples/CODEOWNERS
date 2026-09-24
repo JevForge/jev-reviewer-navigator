@@ -7,3 +7,6 @@
 
 # Auth / security
 /src/auth/ @bob @org/security
+
+# Protect the reviewer policy used by the Action.
+/.jev/reviewer-navigator.yml @org/reviewers

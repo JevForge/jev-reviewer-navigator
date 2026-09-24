@@ -1,0 +1,218 @@
+name: JEV Reviewer Navigator (composite)
+description: Checkout the repository and run JEV Reviewer Navigator, re-exporting its outputs.
+author: JevForge
+branding:
+  icon: users
+  color: blue
+
+inputs:
+  config_path:
+    description: Reviewer Navigator config path.
+    required: false
+    default: .jev/reviewer-navigator.yml
+  changed_paths:
+    description: Newline-separated list or JSON array of changed paths.
+    required: false
+    default: ''
+  codeowners_path:
+    description: Preferred CODEOWNERS path.
+    required: false
+    default: CODEOWNERS
+  labels:
+    description: PR labels used as evidence.
+    required: false
+    default: ''
+  exclude_author:
+    description: Exclude the PR author.
+    required: false
+    default: 'true'
+  max_reviewers:
+    description: Maximum reviewers.
+    required: false
+    default: '3'
+  allowlist:
+    description: Extra users and team:slug ids.
+    required: false
+    default: ''
+  affected_projects:
+    description: Newline-separated list or JSON array of affected projects.
+    required: false
+    default: ''
+  monorepo_plan:
+    description: JSON Monorepo Navigator plan.
+    required: false
+    default: ''
+  jev_provider:
+    description: Jev provider.
+    required: false
+    default: ''
+  jev_model:
+    description: Provider model id.
+    required: false
+    default: ''
+  jev_endpoint:
+    description: HTTPS provider endpoint.
+    required: false
+    default: ''
+  jev_timeout_ms:
+    description: Provider timeout.
+    required: false
+    default: '45000'
+  jev_config_path:
+    description: Shared Jev config path.
+    required: false
+    default: .jev/config.yml
+  min_confidence:
+    description: Minimum Jev confidence.
+    required: false
+    default: ''
+  low_confidence_policy:
+    description: Low-confidence policy.
+    required: false
+    default: ''
+  decision_only:
+    description: Keep assignment disabled.
+    required: false
+    default: 'true'
+  assign_reviewers:
+    description: Request suggested reviewers.
+    required: false
+    default: 'false'
+  auto_assign:
+    description: Document always-on assignment intent.
+    required: false
+    default: 'false'
+  consider_availability:
+    description: Collect membership availability signal.
+    required: false
+    default: 'false'
+  consider_review_load:
+    description: Collect open review-request load.
+    required: false
+    default: 'false'
+  include_commit_history:
+    description: Include path commit history.
+    required: false
+    default: 'true'
+  history_lookback:
+    description: Commit lookback.
+    required: false
+    default: '20'
+  comment_on_github:
+    description: Upsert a PR comment.
+    required: false
+    default: 'false'
+  create_check_run:
+    description: Create a Check Run.
+    required: false
+    default: 'false'
+  telemetry:
+    description: Emit structured telemetry.
+    required: false
+    default: 'false'
+  cache_decisions:
+    description: Use the Actions decision cache.
+    required: false
+    default: 'false'
+  trust_repo_jev_endpoint:
+    description: Trust the repository endpoint with credentials.
+    required: false
+    default: 'false'
+  token:
+    description: GitHub token.
+    required: false
+    default: ${{ github.token }}
+  dry_run:
+    description: Do not mutate or fail on policy errors.
+    required: false
+    default: 'true'
+
+outputs:
+  decision:
+    description: Final decision.
+    value: ${{ steps.navigator.outputs.decision }}
+  suggested_reviewers:
+    description: JSON suggested reviewer ids.
+    value: ${{ steps.navigator.outputs.suggested_reviewers }}
+  ranked_reviewers:
+    description: JSON ranked reviewer ids.
+    value: ${{ steps.navigator.outputs.ranked_reviewers }}
+  primary_reviewer:
+    description: First ranked reviewer.
+    value: ${{ steps.navigator.outputs.primary_reviewer }}
+  confidence:
+    description: Jev confidence.
+    value: ${{ steps.navigator.outputs.confidence }}
+  reason_codes:
+    description: JSON reason codes.
+    value: ${{ steps.navigator.outputs.reason_codes }}
+  summary:
+    description: Human-readable summary.
+    value: ${{ steps.navigator.outputs.summary }}
+  provisional:
+    description: Whether deterministic policy changed the result.
+    value: ${{ steps.navigator.outputs.provisional }}
+  needs_review:
+    description: Whether human review is required.
+    value: ${{ steps.navigator.outputs.needs_review }}
+  affected_paths:
+    description: JSON normalized changed paths.
+    value: ${{ steps.navigator.outputs.affected_paths }}
+  jev_provider:
+    description: Provider used.
+    value: ${{ steps.navigator.outputs.jev_provider }}
+  assign_status:
+    description: Assignment status.
+    value: ${{ steps.navigator.outputs.assign_status }}
+  availability_status:
+    description: Availability collection status.
+    value: ${{ steps.navigator.outputs.availability_status }}
+  load_metrics:
+    description: JSON review-load metrics.
+    value: ${{ steps.navigator.outputs.load_metrics }}
+  cache_hit:
+    description: Whether the decision came from cache.
+    value: ${{ steps.navigator.outputs.cache_hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        token: ${{ inputs.token }}
+        persist-credentials: false
+    - name: Reviewer Navigator
+      id: navigator
+      uses: JevForge/jev-reviewer-navigator@v0
+      with:
+        config_path: ${{ inputs.config_path }}
+        changed_paths: ${{ inputs.changed_paths }}
+        codeowners_path: ${{ inputs.codeowners_path }}
+        labels: ${{ inputs.labels }}
+        exclude_author: ${{ inputs.exclude_author }}
+        max_reviewers: ${{ inputs.max_reviewers }}
+        allowlist: ${{ inputs.allowlist }}
+        affected_projects: ${{ inputs.affected_projects }}
+        monorepo_plan: ${{ inputs.monorepo_plan }}
+        jev_provider: ${{ inputs.jev_provider }}
+        jev_model: ${{ inputs.jev_model }}
+        jev_endpoint: ${{ inputs.jev_endpoint }}
+        jev_timeout_ms: ${{ inputs.jev_timeout_ms }}
+        jev_config_path: ${{ inputs.jev_config_path }}
+        min_confidence: ${{ inputs.min_confidence }}
+        low_confidence_policy: ${{ inputs.low_confidence_policy }}
+        decision_only: ${{ inputs.decision_only }}
+        assign_reviewers: ${{ inputs.assign_reviewers }}
+        auto_assign: ${{ inputs.auto_assign }}
+        consider_availability: ${{ inputs.consider_availability }}
+        consider_review_load: ${{ inputs.consider_review_load }}
+        include_commit_history: ${{ inputs.include_commit_history }}
+        history_lookback: ${{ inputs.history_lookback }}
+        comment_on_github: ${{ inputs.comment_on_github }}
+        create_check_run: ${{ inputs.create_check_run }}
+        telemetry: ${{ inputs.telemetry }}
+        cache_decisions: ${{ inputs.cache_decisions }}
+        trust_repo_jev_endpoint: ${{ inputs.trust_repo_jev_endpoint }}
+        token: ${{ inputs.token }}
+        dry_run: ${{ inputs.dry_run }}

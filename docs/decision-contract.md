@@ -13,6 +13,11 @@
 - `decision`, `confidence` (0..1), `reason_codes` (≥1), `summary`, `provisional`, `provider`
 - `suggested_reviewers`, `ranked_reviewers` (unique login or `team:slug`)
 
+Candidate evidence may include CODEOWNERS, history, labels, components,
+monorepo projects, availability, and aggregated open review-request load.
+The Action additionally exposes `primary_reviewer`, the first ranked reviewer,
+as an output; it is empty for `ABSTAIN` and `REQUEST_REVIEW`.
+
 ## Invalid examples (schema rejects)
 
 ```json

@@ -20,12 +20,20 @@ export const CandidateSignalSchema = z
     label_hint: z.boolean().default(false),
     component_map: z.boolean().default(false),
     team_mapped: z.boolean().default(false),
+    monorepo_project: z.boolean().default(false),
+    monorepo_projects: z.array(z.string().max(128)).max(16).default([]),
     available: z.boolean().nullable().default(null),
     open_review_requests: z.number().int().min(0).max(10_000).nullable().default(null),
   })
   .strict();
 
-export type CandidateSignals = z.infer<typeof CandidateSignalSchema>;
+export type CandidateSignals = Omit<
+  z.infer<typeof CandidateSignalSchema>,
+  'monorepo_project' | 'monorepo_projects'
+> & {
+  monorepo_project?: boolean;
+  monorepo_projects?: string[];
+};
 
 export const ReviewerCandidateSchema = z
   .object({
@@ -36,7 +44,12 @@ export const ReviewerCandidateSchema = z
   })
   .strict();
 
-export type ReviewerCandidate = z.infer<typeof ReviewerCandidateSchema>;
+export type ReviewerCandidate = Omit<
+  z.infer<typeof ReviewerCandidateSchema>,
+  'signals'
+> & {
+  signals: CandidateSignals;
+};
 
 export const NavigatorDecisionSchema = z
   .object({
@@ -87,6 +100,30 @@ export const NavigatorConfigSchema = z
     label_team_map: z
       .record(z.string().max(64), z.array(ReviewerIdSchema).max(16))
       .default({}),
+    project_reviewer_map: z
+      .record(z.string().max(128), z.array(ReviewerIdSchema).max(16))
+      .default({}),
+    required_reviewers: z
+      .array(
+        z
+          .object({
+            paths: z.array(z.string().min(1).max(256)).max(32).default([]),
+            any_of: z.array(ReviewerIdSchema).min(1).max(32),
+            min: z.number().int().min(1).max(32),
+          })
+          .strict()
+          .superRefine((rule, ctx) => {
+            if (rule.min > rule.any_of.length) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'min cannot exceed any_of length',
+                path: ['min'],
+              });
+            }
+          }),
+      )
+      .max(64)
+      .default([]),
     codeowners_path: z.string().max(256).optional(),
     min_confidence: z.number().min(0).max(1).optional(),
     low_confidence_policy: z.enum(LOW_CONFIDENCE_POLICIES).optional(),

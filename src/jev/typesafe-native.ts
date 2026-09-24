@@ -26,6 +26,12 @@ export function createTypesafeNativeProvider(options: JevProviderOptions): JevPr
           'jev_model is required for typesafe-native (pin a catalog model id)',
         );
       }
+      if (!endpoint.startsWith('https://')) {
+        return unavailableDecision(
+          'typesafe-native',
+          'jev_endpoint must be HTTPS for typesafe-native',
+        );
+      }
       try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), options.timeoutMs);

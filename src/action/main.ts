@@ -15,10 +15,10 @@ import { collectLabels, mapLabelsToReviewers } from '../collectors/labels.js';
 import { collectAvailability } from '../collectors/availability.js';
 import { collectReviewLoad } from '../collectors/load.js';
 import { buildCandidates } from '../collectors/candidates.js';
+import { parseAffectedProjects, reviewersFromMonorepoPlan } from '../collectors/monorepo.js';
 import { applyPolicyToAction } from '../github/outputs.js';
 import { COMMENT_MARKER } from '../executors/comment.js';
 import { credentialEnvName } from '../jev/contract.js';
-import { parseList } from '../utils/sanitize.js';
 
 export interface ActionContext {
   inputs: Record<string, string>;
@@ -69,6 +69,9 @@ export interface ActionContext {
         issuesAndPullRequests: (params: Record<string, unknown>) => Promise<{
           data: { total_count: number };
         }>;
+      };
+      teams?: {
+        listMembersInOrg: unknown;
       };
     };
   } | null;
@@ -191,7 +194,24 @@ export async function runAction(ctx: ActionContext): Promise<void> {
 
   const labels = collectLabels(ctx.inputs.labels, ctx.payload);
   const labelHints = mapLabelsToReviewers(labels, navConfig.label_team_map);
-  const allowlist = mergeAllowlist(navConfig.allowlist, ctx.inputs.allowlist);
+  const allowlist = mergeAllowlist(
+    [
+      ...navConfig.allowlist,
+      ...navConfig.required_reviewers.flatMap(rule => rule.any_of),
+    ],
+    ctx.inputs.allowlist,
+  );
+  const affectedProjects = [
+    ...new Set([
+      ...parseAffectedProjects(ctx.inputs.affected_projects),
+      ...parseAffectedProjects(ctx.inputs.monorepo_plan),
+    ]),
+  ];
+  const monorepoHints = reviewersFromMonorepoPlan(
+    affectedProjects.length ? { affected_projects: affectedProjects } : null,
+    navConfig.project_reviewer_map,
+    navConfig.component_map,
+  );
 
   const draftCandidates = buildCandidates({
     allowlist,
@@ -204,6 +224,7 @@ export async function runAction(ctx: ActionContext): Promise<void> {
     excludeAuthor,
     availability: [],
     loadMetrics: {},
+    monorepoHints,
   });
 
   const availability = await collectAvailability(
@@ -243,6 +264,20 @@ export async function runAction(ctx: ActionContext): Promise<void> {
             });
             return result.data.total_count;
           },
+          async listTeamMembers(teamSlug) {
+            if (!ctx.octokit!.rest.teams) return [];
+            const members = await ctx.octokit!.paginate<{ login?: string }>(
+              ctx.octokit!.rest.teams.listMembersInOrg,
+              {
+                org: ctx.repo.owner,
+                team_slug: teamSlug,
+                per_page: 100,
+              },
+            );
+            return members
+              .map(member => member.login)
+              .filter((login): login is string => typeof login === 'string');
+          },
         }
       : null,
   );
@@ -258,6 +293,7 @@ export async function runAction(ctx: ActionContext): Promise<void> {
     excludeAuthor,
     availability: availability.signals,
     loadMetrics: load.metrics,
+    monorepoHints,
   });
 
   ctx.info(`Jev provider: ${jevProvider} (credential env: ${credentialEnvName(jevProvider)})`);
@@ -364,6 +400,8 @@ export async function runAction(ctx: ActionContext): Promise<void> {
     maxReviewers: Math.min(16, Math.max(1, maxReviewers)),
     minConfidence,
     lowConfidencePolicy,
+    requiredReviewerRules: navConfig.required_reviewers,
+    affectedProjects,
     jevProvider,
     jevEndpoint,
     jevModel,
@@ -384,6 +422,8 @@ export async function runAction(ctx: ActionContext): Promise<void> {
       maxReviewers,
       minConfidence,
       lowConfidencePolicy,
+      requiredReviewerRules: navConfig.required_reviewers,
+      affectedProjects,
     }),
     workspace: ctx.workspace,
     headSha,
@@ -444,5 +484,4 @@ export async function runAction(ctx: ActionContext): Promise<void> {
     );
   }
 
-  void parseList;
 }

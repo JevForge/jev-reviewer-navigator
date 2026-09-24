@@ -28,6 +28,7 @@ export function buildCacheKey(parts: {
   paths: string[];
   provider: string;
   maxReviewers: number;
+  affectedProjects?: string[];
 }): string {
   const hash = createHash('sha256')
     .update(
@@ -36,6 +37,7 @@ export function buildCacheKey(parts: {
         paths: [...parts.paths].sort(),
         provider: parts.provider,
         max: parts.maxReviewers,
+        affectedProjects: [...(parts.affectedProjects ?? [])].sort(),
       }),
     )
     .digest('hex')
