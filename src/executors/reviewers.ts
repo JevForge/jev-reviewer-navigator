@@ -1,5 +1,7 @@
 export interface ReviewerClient {
   requestReviewers(input: { reviewers: string[]; teamReviewers: string[] }): Promise<void>;
+  /** Optional: used for idempotent assignment on synchronize. */
+  listRequestedReviewers?(): Promise<{ reviewers: string[]; teamReviewers: string[] }>;
 }
 
 export function splitReviewers(ids: string[]): {
@@ -15,11 +17,28 @@ export function splitReviewers(ids: string[]): {
   return { reviewers, teamReviewers };
 }
 
-export type AssignStatus = 'requested' | 'dry-run' | 'skipped' | 'disabled';
+export function diffReviewers(
+  suggested: { reviewers: string[]; teamReviewers: string[] },
+  already: { reviewers: string[]; teamReviewers: string[] },
+): { reviewers: string[]; teamReviewers: string[] } {
+  const haveUsers = new Set(already.reviewers.map(u => u.toLowerCase()));
+  const haveTeams = new Set(already.teamReviewers.map(t => t.toLowerCase()));
+  return {
+    reviewers: suggested.reviewers.filter(u => !haveUsers.has(u.toLowerCase())),
+    teamReviewers: suggested.teamReviewers.filter(t => !haveTeams.has(t.toLowerCase())),
+  };
+}
+
+export type AssignStatus =
+  | 'requested'
+  | 'unchanged'
+  | 'dry-run'
+  | 'skipped'
+  | 'disabled';
 
 /**
  * Assignment is always explicit: decision_only blocks it; assign_reviewers must be true.
- * auto_assign only removes an extra gate when both of those already allow assignment.
+ * When the client can list existing requests, only the delta is requested (idempotent).
  */
 export async function maybeAssignReviewers(params: {
   decisionOnly: boolean;
@@ -33,12 +52,28 @@ export async function maybeAssignReviewers(params: {
   if (params.decisionOnly || !params.assignReviewers) return 'disabled';
   if (params.decision !== 'RECOMMEND_REVIEWERS') return 'skipped';
   if (params.suggested.length === 0) return 'skipped';
-  // auto_assign=false still allows assignment when assign_reviewers is explicitly true
-  // (explicit opt-in). auto_assign documents intent for workflows that always assign.
   void params.autoAssign;
-  const { reviewers, teamReviewers } = splitReviewers(params.suggested);
-  if (reviewers.length === 0 && teamReviewers.length === 0) return 'skipped';
+
+  const suggested = splitReviewers(params.suggested);
+  if (suggested.reviewers.length === 0 && suggested.teamReviewers.length === 0) {
+    return 'skipped';
+  }
+
+  let toRequest = suggested;
+  if (params.client?.listRequestedReviewers) {
+    try {
+      const already = await params.client.listRequestedReviewers();
+      toRequest = diffReviewers(suggested, already);
+    } catch {
+      // Soft: fall back to full request list
+      toRequest = suggested;
+    }
+  }
+
+  if (toRequest.reviewers.length === 0 && toRequest.teamReviewers.length === 0) {
+    return 'unchanged';
+  }
   if (params.dryRun || !params.client) return 'dry-run';
-  await params.client.requestReviewers({ reviewers, teamReviewers });
+  await params.client.requestReviewers(toRequest);
   return 'requested';
 }

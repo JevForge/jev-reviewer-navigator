@@ -39,6 +39,12 @@ export interface ActionContext {
         listFiles: unknown;
         listCommits?: unknown;
         requestReviewers: (params: Record<string, unknown>) => Promise<unknown>;
+        listRequestedReviewers?: (params: Record<string, unknown>) => Promise<{
+          data: {
+            users?: Array<{ login?: string }>;
+            teams?: Array<{ slug?: string }>;
+          };
+        }>;
       };
       repos: {
         listCommits: (params: Record<string, unknown>) => Promise<{
@@ -272,6 +278,21 @@ export async function runAction(ctx: ActionContext): Promise<void> {
               reviewers: input.reviewers,
               team_reviewers: input.teamReviewers,
             });
+          },
+          async listRequestedReviewers() {
+            const response = await ctx.octokit!.rest.pulls.listRequestedReviewers!({
+              owner: ctx.repo.owner,
+              repo: ctx.repo.repo,
+              pull_number: pullNumber,
+            });
+            return {
+              reviewers: (response.data.users ?? [])
+                .map(u => u.login)
+                .filter((login): login is string => typeof login === 'string'),
+              teamReviewers: (response.data.teams ?? [])
+                .map(t => t.slug)
+                .filter((slug): slug is string => typeof slug === 'string'),
+            };
           },
         }
       : null;

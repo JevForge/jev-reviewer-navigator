@@ -4,10 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-### Changed
+## [0.2.0] — TBD
 
-* Expanded public README, issue/PR templates, and Marketplace-oriented documentation.
-* Clarified `action.yml` input/output descriptions (no breaking renames).
+### Added
+
+* Idempotent reviewer assignment: only request reviewers/teams not already on the PR (`assign_status=unchanged` when nothing new).
 
 ## [0.1.0] — 2026-09-24
 
