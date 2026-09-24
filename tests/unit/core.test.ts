@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parseCodeowners, ownersForPath, collectCodeownersHits } from '../../src/collectors/codeowners.js';
 import { matchPath } from '../../src/utils/globs.js';
 import { normalizeReviewerId } from '../../src/utils/sanitize.js';
@@ -231,6 +231,51 @@ describe('assign executor', () => {
       client: { requestReviewers: async () => undefined },
     });
     expect(status).toBe('dry-run');
+  });
+
+  it('returns unchanged when all reviewers already requested', async () => {
+    const requestReviewers = vi.fn();
+    const status = await maybeAssignReviewers({
+      decisionOnly: false,
+      assignReviewers: true,
+      autoAssign: true,
+      dryRun: false,
+      decision: 'RECOMMEND_REVIEWERS',
+      suggested: ['alice', 'team:platform'],
+      client: {
+        requestReviewers,
+        listRequestedReviewers: async () => ({
+          reviewers: ['alice'],
+          teamReviewers: ['platform'],
+        }),
+      },
+    });
+    expect(status).toBe('unchanged');
+    expect(requestReviewers).not.toHaveBeenCalled();
+  });
+
+  it('requests only the delta of new reviewers', async () => {
+    const requestReviewers = vi.fn(async () => undefined);
+    const status = await maybeAssignReviewers({
+      decisionOnly: false,
+      assignReviewers: true,
+      autoAssign: true,
+      dryRun: false,
+      decision: 'RECOMMEND_REVIEWERS',
+      suggested: ['alice', 'bob'],
+      client: {
+        requestReviewers,
+        listRequestedReviewers: async () => ({
+          reviewers: ['alice'],
+          teamReviewers: [],
+        }),
+      },
+    });
+    expect(status).toBe('requested');
+    expect(requestReviewers).toHaveBeenCalledWith({
+      reviewers: ['bob'],
+      teamReviewers: [],
+    });
   });
 });
 

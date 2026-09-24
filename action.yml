@@ -137,7 +137,7 @@ outputs:
   jev_provider:
     description: Provider that was asked. The Action never falls back to a different provider.
   assign_status:
-    description: Assignment effect — `requested`, `dry-run`, `skipped`, or `disabled`.
+    description: Assignment effect — `requested`, `unchanged`, `dry-run`, `skipped`, or `disabled`.
   availability_status:
     description: Soft availability collection — `collected`, `skipped`, or `unavailable`.
   load_metrics:
