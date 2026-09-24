@@ -1,0 +1,148 @@
+name: JEV Reviewer Navigator
+description: Suggest PR reviewers from CODEOWNERS, history, paths, labels, and teams. Jev decides; assignment stays explicit.
+author: JevForge
+branding:
+  icon: users
+  color: blue
+
+inputs:
+  config_path:
+    description: Path to the reviewer navigator config (allowlist, component map, label→team map).
+    required: false
+    default: .jev/reviewer-navigator.yml
+  changed_paths:
+    description: Newline-separated list or JSON array of changed repo-relative paths. Empty collects paths from the GitHub event.
+    required: false
+    default: ''
+  codeowners_path:
+    description: Path to CODEOWNERS (repo-relative). Checked at root, docs/, and .github/.
+    required: false
+    default: CODEOWNERS
+  allowlist:
+    description: Comma/newline-separated users and teams (team:slug) that may be suggested. Merges with config allowlist.
+    required: false
+    default: ''
+  exclude_author:
+    description: Exclude the PR author from suggested reviewers.
+    required: false
+    default: 'true'
+  max_reviewers:
+    description: Maximum number of reviewers to suggest (1–16).
+    required: false
+    default: '3'
+  labels:
+    description: Comma/newline-separated PR labels used as evidence. Empty reads labels from the pull_request event.
+    required: false
+    default: ''
+  jev_provider:
+    description: 'Jev provider: vercel-ai-gateway, typesafe-native, or custom-compatible. Defaults to vercel-ai-gateway.'
+    required: false
+    default: ''
+  jev_model:
+    description: Model id. vercel-ai-gateway defaults to typesafe-ai/jev. Native and custom providers require a catalog model id.
+    required: false
+    default: ''
+  jev_endpoint:
+    description: HTTPS endpoint for typesafe-native or custom-compatible. Workflow inputs are trusted; repository config is not, unless trust_repo_jev_endpoint is true.
+    required: false
+    default: ''
+  jev_timeout_ms:
+    description: Provider timeout in milliseconds, from 1000 to 120000.
+    required: false
+    default: '45000'
+  jev_config_path:
+    description: Shared Jev config path.
+    required: false
+    default: .jev/config.yml
+  min_confidence:
+    description: Minimum confidence required before RECOMMEND_REVIEWERS is trusted.
+    required: false
+    default: ''
+  low_confidence_policy:
+    description: 'Policy when Jev is unavailable, rejected, or below min_confidence: fail, warn, request-review, or no-op.'
+    required: false
+    default: ''
+  decision_only:
+    description: When true (default), only emit recommendations. Never assign reviewers.
+    required: false
+    default: 'true'
+  assign_reviewers:
+    description: When true and decision_only is false, request suggested reviewers on the PR. Requires pull-requests: write.
+    required: false
+    default: 'false'
+  auto_assign:
+    description: When true with assign_reviewers, assign automatically on RECOMMEND_REVIEWERS without extra Confirm. Still requires decision_only=false.
+    required: false
+    default: 'false'
+  consider_availability:
+    description: Soft-signal team membership / presence when a token is available. Never invents busy/OOO status.
+    required: false
+    default: 'false'
+  consider_review_load:
+    description: Soft-signal open review-request counts via the GitHub API when a token is available.
+    required: false
+    default: 'false'
+  include_commit_history:
+    description: Include recent commit authors for changed paths as evidence.
+    required: false
+    default: 'true'
+  history_lookback:
+    description: Maximum commits to scan per path batch (1–50).
+    required: false
+    default: '20'
+  comment_on_github:
+    description: When true on pull_request events, upsert an idempotent PR comment. Requires pull-requests: write.
+    required: false
+    default: 'false'
+  create_check_run:
+    description: When true, create a completed Check Run named JEV Reviewer Navigator. Requires checks: write.
+    required: false
+    default: 'false'
+  telemetry:
+    description: When true, emit a structured JSON info log with duration_ms, provider, provisional (no paths or secrets).
+    required: false
+    default: 'false'
+  trust_repo_jev_endpoint:
+    description: Allow jev_endpoint from repository config to receive credentials. Leave false unless that file is protected.
+    required: false
+    default: 'false'
+  token:
+    description: Token used to read PR files, history, availability/load signals, and optional assign/comment/check effects.
+    required: false
+    default: ${{ github.token }}
+  dry_run:
+    description: When true (default), emit outputs and summaries but do not assign reviewers, post comments, or fail the step on policy fail.
+    required: false
+    default: 'true'
+
+outputs:
+  decision:
+    description: 'RECOMMEND_REVIEWERS, ABSTAIN, or REQUEST_REVIEW.'
+  suggested_reviewers:
+    description: JSON array of allowlisted logins and team:slug values.
+  ranked_reviewers:
+    description: JSON array of suggested reviewers in preference order.
+  confidence:
+    description: Jev confidence from 0 to 1. Policy overrides do not invent a higher value.
+  reason_codes:
+    description: JSON array of stable reason codes.
+  summary:
+    description: Plain-text explanation. It is not a command and must not be executed.
+  provisional:
+    description: 'true when the result came from deterministic policy rather than a trusted Jev selection.'
+  needs_review:
+    description: 'true when the request-review policy applied.'
+  affected_paths:
+    description: JSON array of normalized changed paths collected by the action.
+  jev_provider:
+    description: Provider that was asked. The action never falls back to a different provider.
+  assign_status:
+    description: 'requested, dry-run, skipped, or disabled.'
+  availability_status:
+    description: 'collected, skipped, or unavailable.'
+  load_metrics:
+    description: JSON object of per-candidate open review-request counts (empty when disabled).
+
+runs:
+  using: node24
+  main: dist/index.js

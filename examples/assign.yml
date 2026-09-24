@@ -1,0 +1,29 @@
+name: Reviewer Navigator (assign)
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  assign-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JevForge/jev-reviewer-navigator@v0
+        with:
+          decision_only: 'false'
+          assign_reviewers: 'true'
+          auto_assign: 'true'
+          dry_run: 'false'
+          consider_availability: 'true'
+          consider_review_load: 'true'
+          comment_on_github: 'true'
+          create_check_run: 'true'
+          max_reviewers: '3'
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}

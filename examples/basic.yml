@@ -1,0 +1,26 @@
+name: Reviewer Navigator (recommend only)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
+jobs:
+  suggest-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JevForge/jev-reviewer-navigator@v0
+        with:
+          decision_only: 'true'
+          dry_run: 'true'
+          create_check_run: 'true'
+          comment_on_github: 'false'
+          min_confidence: '0.6'
+          low_confidence_policy: warn
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}

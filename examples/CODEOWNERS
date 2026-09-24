@@ -1,0 +1,9 @@
+# Global fallback
+* @org/everyone
+
+# Frontend
+/src/ @org/frontend
+*.tsx @org/frontend
+
+# Auth / security
+/src/auth/ @bob @org/security
