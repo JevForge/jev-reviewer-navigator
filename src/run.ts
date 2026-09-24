@@ -1,4 +1,10 @@
 import { executeNavigator } from './decision/execute.js';
+import {
+  buildCacheKey,
+  fingerprintConfig,
+  saveDecisionCache,
+  tryRestoreDecisionCache,
+} from './decision/cache.js';
 import { createJevProvider } from './jev/factory.js';
 import type { JevProviderId, LowConfidencePolicy } from './schemas/enums.js';
 import type { ReviewerCandidate } from './schemas/navigator.js';
@@ -8,6 +14,7 @@ import { maybeCreateCheckRun, type CheckRunClient } from './executors/check-run.
 import type { AvailabilityStatus } from './collectors/availability.js';
 import type { LoadMetrics } from './collectors/load.js';
 import type { PolicyOutcome } from './decision/policy.js';
+import { join } from 'node:path';
 
 export interface RunNavigatorParams {
   candidates: ReviewerCandidate[];
@@ -31,6 +38,9 @@ export interface RunNavigatorParams {
   commentOnGithub: boolean;
   createCheckRun: boolean;
   enableDeterministicFallback: boolean;
+  cacheDecisions?: boolean;
+  cacheConfigFingerprint?: string;
+  workspace?: string;
   headSha?: string | null;
   availabilityStatus: AvailabilityStatus;
   loadMetrics: LoadMetrics;
@@ -47,36 +57,64 @@ export interface RunNavigatorResult {
   checkStatus: 'created' | 'dry-run' | 'skipped';
   availabilityStatus: AvailabilityStatus;
   loadMetrics: LoadMetrics;
+  cacheHit: boolean;
 }
 
 export async function runNavigator(params: RunNavigatorParams): Promise<RunNavigatorResult> {
-  const provider = createJevProvider({
+  const cacheEnabled = Boolean(params.cacheDecisions);
+  const cacheDir = join(params.workspace || process.cwd(), '.jev', '.decision-cache');
+  const cacheKey = buildCacheKey({
+    sha: params.headSha || 'nosha',
+    configFingerprint: params.cacheConfigFingerprint || fingerprintConfig({}),
+    paths: params.changedPaths,
     provider: params.jevProvider,
-    apiKey: params.apiKey,
-    endpoint: params.jevEndpoint,
-    model: params.jevModel,
-    timeoutMs: params.timeoutMs,
-    fetchImpl: params.fetchImpl,
-  });
-
-  const executed = await executeNavigator({
-    provider,
-    candidates: params.candidates,
-    changedPaths: params.changedPaths,
-    pathsTruncated: params.pathsTruncated,
-    labels: params.labels,
-    author: params.author,
     maxReviewers: params.maxReviewers,
-    minConfidence: params.minConfidence,
-    lowConfidencePolicy: params.lowConfidencePolicy,
-    enableDeterministicFallback: params.enableDeterministicFallback,
   });
 
-  const decision = executed.outcome.decision;
+  let outcome: PolicyOutcome | null = await tryRestoreDecisionCache({
+    enabled: cacheEnabled,
+    key: cacheKey,
+    cacheDir,
+  });
+  const cacheHit = outcome != null;
+
+  if (!outcome) {
+    const provider = createJevProvider({
+      provider: params.jevProvider,
+      apiKey: params.apiKey,
+      endpoint: params.jevEndpoint,
+      model: params.jevModel,
+      timeoutMs: params.timeoutMs,
+      fetchImpl: params.fetchImpl,
+    });
+
+    const executed = await executeNavigator({
+      provider,
+      candidates: params.candidates,
+      changedPaths: params.changedPaths,
+      pathsTruncated: params.pathsTruncated,
+      labels: params.labels,
+      author: params.author,
+      maxReviewers: params.maxReviewers,
+      minConfidence: params.minConfidence,
+      lowConfidencePolicy: params.lowConfidencePolicy,
+      enableDeterministicFallback: params.enableDeterministicFallback,
+    });
+    outcome = executed.outcome;
+    await saveDecisionCache({
+      enabled: cacheEnabled,
+      key: cacheKey,
+      cacheDir,
+      outcome,
+    });
+  }
+
+  const decision = outcome.decision;
   const summary = [
     `${decision.decision}: ${decision.suggested_reviewers.join(',') || 'none'}`,
     `confidence=${decision.confidence}`,
     `reasons=${decision.reason_codes.join(',')}`,
+    cacheHit ? 'cache=hit' : 'cache=miss',
   ].join(' | ');
 
   const assignStatus = await maybeAssignReviewers({
@@ -101,17 +139,18 @@ export async function runNavigator(params: RunNavigatorParams): Promise<RunNavig
     params.createCheckRun,
     params.dryRun,
     params.headSha ?? null,
-    executed.outcome,
+    outcome,
     params.checkRunClient ?? null,
   );
 
   return {
-    outcome: executed.outcome,
+    outcome,
     summary,
     assignStatus,
     commentStatus,
     checkStatus,
     availabilityStatus: params.availabilityStatus,
     loadMetrics: params.loadMetrics,
+    cacheHit,
   };
 }

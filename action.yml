@@ -102,6 +102,10 @@ inputs:
     description: Emit one structured JSON info log with duration and counts (no paths or secrets).
     required: false
     default: 'false'
+  cache_decisions:
+    description: When true, restore/save the typed decision via the Actions cache (keyed by SHA, config, paths, provider).
+    required: false
+    default: 'false'
   trust_repo_jev_endpoint:
     description: Allow `jev_endpoint` from repository config to receive credentials. Keep false unless that file is CODEOWNERS-protected.
     required: false
@@ -142,6 +146,8 @@ outputs:
     description: Soft availability collection — `collected`, `skipped`, or `unavailable`.
   load_metrics:
     description: JSON object of per-candidate open review-request counts (empty when disabled).
+  cache_hit:
+    description: '`true` when the decision was restored from the Actions cache.'
 
 runs:
   using: node24

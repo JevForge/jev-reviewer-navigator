@@ -20,6 +20,7 @@ export function writeDecisionOutputs(
     availabilityStatus: AvailabilityStatus;
     loadMetrics: LoadMetrics;
     needsReview: boolean;
+    cacheHit?: boolean;
   },
 ): void {
   writer.setOutput('decision', decision.decision);
@@ -35,6 +36,7 @@ export function writeDecisionOutputs(
   writer.setOutput('assign_status', extras.assignStatus);
   writer.setOutput('availability_status', extras.availabilityStatus);
   writer.setOutput('load_metrics', JSON.stringify(extras.loadMetrics));
+  writer.setOutput('cache_hit', String(Boolean(extras.cacheHit)));
 }
 
 export function applyPolicyToAction(
@@ -46,6 +48,7 @@ export function applyPolicyToAction(
     availabilityStatus: AvailabilityStatus;
     loadMetrics: LoadMetrics;
     dryRun: boolean;
+    cacheHit?: boolean;
   },
 ): void {
   writeDecisionOutputs(writer, outcome.decision, {
@@ -54,6 +57,7 @@ export function applyPolicyToAction(
     availabilityStatus: extras.availabilityStatus,
     loadMetrics: extras.loadMetrics,
     needsReview: outcome.status === 'request-review',
+    cacheHit: extras.cacheHit,
   });
 
   const prefix = '[JEV Reviewer Navigator]';
