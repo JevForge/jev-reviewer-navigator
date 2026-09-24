@@ -4,7 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-## [0.2.1] — TBD
+## [0.2.2] — TBD
+
+### Added
+
+* Optional Actions cache for typed decisions (`cache_decisions` input, `cache_hit` output).
+
+## [0.2.1] — 2026-09-24
 
 ### Added
 

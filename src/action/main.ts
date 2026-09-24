@@ -7,6 +7,7 @@ import {
   mergeAllowlist,
   resolveEndpoint,
 } from '../collectors/config.js';
+import { fingerprintConfig } from '../decision/cache.js';
 import { collectChangedPaths, enrichPathsFromPull } from '../collectors/paths.js';
 import { loadCodeowners, collectCodeownersHits } from '../collectors/codeowners.js';
 import { collectPathHistory } from '../collectors/history.js';
@@ -121,6 +122,7 @@ export async function runAction(ctx: ActionContext): Promise<void> {
   const createCheckRun = readBoolean(ctx.inputs, 'create_check_run', false);
   const telemetry = readBoolean(ctx.inputs, 'telemetry', false);
   const trustRepoEndpoint = readBoolean(ctx.inputs, 'trust_repo_jev_endpoint', false);
+  const cacheDecisions = readBoolean(ctx.inputs, 'cache_decisions', false);
 
   const jevEndpoint = resolveEndpoint({
     inputEndpoint: ctx.inputs.jev_endpoint,
@@ -375,6 +377,15 @@ export async function runAction(ctx: ActionContext): Promise<void> {
     commentOnGithub,
     createCheckRun,
     enableDeterministicFallback: true,
+    cacheDecisions,
+    cacheConfigFingerprint: fingerprintConfig({
+      nav: navConfig,
+      allowlist,
+      maxReviewers,
+      minConfidence,
+      lowConfidencePolicy,
+    }),
+    workspace: ctx.workspace,
     headSha,
     availabilityStatus: availability.status,
     loadMetrics: load.metrics,
@@ -397,12 +408,14 @@ export async function runAction(ctx: ActionContext): Promise<void> {
       availabilityStatus: result.availabilityStatus,
       loadMetrics: result.loadMetrics,
       dryRun,
+      cacheHit: result.cacheHit,
     },
   );
 
   ctx.info(`Assign: ${result.assignStatus}`);
   ctx.info(`Comment: ${result.commentStatus}`);
   ctx.info(`Check run: ${result.checkStatus}`);
+  ctx.info(`Cache hit: ${result.cacheHit}`);
 
   if (ctx.summary) {
     await ctx.summary(

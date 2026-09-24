@@ -27,6 +27,7 @@ const INPUT_NAMES = [
   'comment_on_github',
   'create_check_run',
   'telemetry',
+  'cache_decisions',
   'trust_repo_jev_endpoint',
   'token',
   'dry_run',
